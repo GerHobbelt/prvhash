@@ -49,7 +49,7 @@ static inline uint8_t prvhash_core1( uint8_t* const Seed,
 	*Seed ^= *Hash;
 	return( out );
 }
-int main()
+int main(void)
 {
 	uint8_t Seed[ PH_SEED_COUNT ] = { 0 }, lcg = 0;
 	uint8_t Hash[ PH_HASH_COUNT ] = { 0 };

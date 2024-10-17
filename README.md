@@ -128,7 +128,7 @@ The code follows.
 #include "prvhash_core.h"
 #include <stdio.h>
 
-int main()
+int main(void)
 {
     uint64_t Seed = 0;
     uint64_t lcg = 0;
@@ -284,7 +284,7 @@ can input external entropy into the system.
 #include "prvhash_core.h"
 #define PH_HASH_COUNT 42
 
-int main()
+int main(void)
 {
     uint8_t Seed = 0;
     uint8_t lcg = 0;
@@ -629,7 +629,7 @@ otherwise PRNG stalls.
 #include "prvhash_core.h"
 #include <stdio.h>
 
-int main()
+int main(void)
 {
     uint64_t Seed = 0;
     uint64_t lcg = 0;
