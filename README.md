@@ -368,8 +368,8 @@ longer. A conceptual aspect of replicated bit-pairs is that they represent the
 simplest maximum-entropy number that lacks information (bit-pair is a minimal
 sequence that can exhibit entropy, with replication count bound to state
 variable size). While "magic numbers" can be used instead of these bit-trains
-(at least for PRNG), they do not posses the property of not having an
-information (zero spectrum beside DC and Nyquist components).
+(at least for PRNG), they do not posses the property of not having bitwise
+spectral information (zero spectrum beside DC and Nyquist components).
 
 It is important to point out that the presence of the `0xAAAA...` and
 `0x5555...` constants logically assure that the `Seed` and `lcg` variables
@@ -487,6 +487,107 @@ is that otherwise the function would require 5 preliminary "conditioning"
 rounds (core function calls); that would reduce the performance of the hash
 function dramatically, for hash-table uses. Note that the `prvhash64s`
 function starts from the "full zero" state and then performs acceptably.
+
+## Theory
+
+The author has no concrete theory for why PRVHASH PRNG with its "bi-variable
+shuffler" work so well, especially its 2-bit variant (which is a very close
+empirical proof that mathematics has entropy processes happening under the
+hood). The closest mathematical construct found by the author is a sinewave
+oscillator (see below). Also, series related to `PI`, `sin(x)`, and
+`sin(x)/x` may be candidates for explanation.
+
+Author's empirical goals when developing PRVHASH were: no loss of entropy in
+a system, easy scalability, self-start without any special initialization and
+from any initial state, state variable size invariance, not-stalling on
+various entropy input. However, PRVHASH principally uses constructs similar
+to many other PRNGs and ciphers: bijective permutation (in its `Seed` and
+`lcg` variables) and a counter (in its `Hash` variables).
+
+During the course of PRVHASH development, the author has found that the
+simplest low-frequency sine-wave oscillator can be used as a pseudo-random
+number generator, if its mantissa is treated as an integer number (tested with
+`PractRand`). This means that every point on a sinusoid has properties of a
+sparsely-random bit-sequence. Note that this code uses full floating-point
+mantissa values while 64-bit floating-point math accumulates rounding errors
+much slower than successive 16-bit random values require: thus the code does
+not rely on rounding errors to produce random numbers.
+
+```c++
+#include <math.h>
+#include <stdint.h>
+
+class DummyRNG : public PractRand::RNGs::vRNG16
+{
+public:
+    double si;
+    double sincr;
+    double svalue1;
+    double svalue2;
+
+    DummyRNG() {
+        si = 0.001;
+        sincr = 2.0 * cos( si );
+        seed( 0 );
+    }
+    Uint16 raw16() {
+        uint64_t Value = ( *(uint64_t*) &svalue1 ) >> 4;
+
+        const double tmp = svalue1;
+        svalue1 = sincr * svalue1 - svalue2;
+        svalue2 = tmp;
+
+        return (Uint16) ( Value ^ Value >> 16 ^ Value >> 32 );
+    }
+    void walk_state(PractRand::StateWalkingObject *walker) {}
+    void seed(Uint64 sv) {
+        const double ph = sv * 3.40612158008655459e-19; // Seed to phase.
+        svalue1 = sin( ph );
+        svalue2 = sin( ph - si );
+    }
+    std::string get_name() const {return "SINEWAVE";}
+};
+```
+
+Another finding is that the `lcg * 2 + 1` construct works as PRNG even if the
+multiplier is a simple increasing counter variable, when the second multiplier
+is a high-entropy number.
+
+```c++
+#include <stdint.h>
+
+class DummyRNG : public PractRand::RNGs::vRNG8
+{
+public:
+    uint64_t Ctr1;
+
+    DummyRNG() {
+        Ctr1 = 1;
+    }
+    uint8_t compress( const uint64_t v )
+    {
+        uint8_t r = 0;
+        for( int i = 0; i < 64; i++ )
+        {
+            r ^= (uint8_t) (( v >> i ) & 1 );
+        }
+        return( r );
+    }
+    Uint8 raw8() {
+        uint8_t ov = 0;
+        for( int l = 0; l < 8; l++ )
+        {
+            ov <<= 1;
+            ov ^= compress( 0x243F6A8885A308D3 * Ctr1 );
+            Ctr1 += 2;
+        }
+        return( ov );
+    }
+    void walk_state(PractRand::StateWalkingObject *walker) {}
+    void seed(Uint64 sv) {}
+    std::string get_name() const {return "LCG";}
+};
+```
 
 ## Hashing Method's Philosophy
 
@@ -803,103 +904,6 @@ the fewest resonant modes. Rhythm-dependent collision minimization also
 touches the ability of a single random number generator to create random
 sequences, uncorrelated in many dimensions (known as k-equidistribution) just
 by selecting any sequence of its outputs.
-
-### Theory
-
-The author has no concrete theory for why PRVHASH PRNG works, especially its
-2-bit variant (which is a very close empirical proof that mathematics has
-entropy processes happening under the hood). The closest mathematical
-construct found by the author is a sinewave oscillator (see below). Also,
-series related to `PI`, `sin(x)`, and `sin(x)/x` may be candidates for
-explanation. Author's empirical goals when developing PRVHASH were: no loss of
-entropy in a system, easy scalability, self-start without any special
-initialization and from any initial state, state variable size invariance,
-not-stalling on various entropy input.
-
-During the course of PRVHASH development, the author has found that the
-simplest low-frequency sine-wave oscillator can be used as a pseudo-random
-number generator, if its mantissa is treated as an integer number (tested with
-`PractRand`). This means that every point on a sinusoid has properties of a
-sparsely-random bit-sequence. Note that the code uses full floating-point
-mantissa values while 64-bit floating-point math accumulates rounding errors
-much slower than successive 16-bit random values require: thus the code does
-not rely on rounding errors to produce random numbers.
-
-```c++
-#include <math.h>
-#include <stdint.h>
-
-class DummyRNG : public PractRand::RNGs::vRNG16
-{
-public:
-    double si;
-    double sincr;
-    double svalue1;
-    double svalue2;
-
-    DummyRNG() {
-        si = 0.001;
-        sincr = 2.0 * cos( si );
-        seed( 0 );
-    }
-    Uint16 raw16() {
-        uint64_t Value = ( *(uint64_t*) &svalue1 ) >> 4;
-
-        const double tmp = svalue1;
-        svalue1 = sincr * svalue1 - svalue2;
-        svalue2 = tmp;
-
-        return (Uint16) ( Value ^ Value >> 16 ^ Value >> 32 );
-    }
-    void walk_state(PractRand::StateWalkingObject *walker) {}
-    void seed(Uint64 sv) {
-        const double ph = sv * 3.40612158008655459e-19; // Seed to phase.
-        svalue1 = sin( ph );
-        svalue2 = sin( ph - si );
-    }
-    std::string get_name() const {return "SINEWAVE";}
-};
-```
-
-Another finding is that the `lcg * 2 + 1` construct works as PRNG even if the
-multiplier is a simple increasing counter variable, when the second multiplier
-is a high-entropy number.
-
-```c++
-#include <stdint.h>
-
-class DummyRNG : public PractRand::RNGs::vRNG8
-{
-public:
-    uint64_t Ctr1;
-
-    DummyRNG() {
-        Ctr1 = 1;
-    }
-    uint8_t compress( const uint64_t v )
-    {
-        uint8_t r = 0;
-        for( int i = 0; i < 64; i++ )
-        {
-            r ^= (uint8_t) (( v >> i ) & 1 );
-        }
-        return( r );
-    }
-    Uint8 raw8() {
-        uint8_t ov = 0;
-        for( int l = 0; l < 8; l++ )
-        {
-            ov <<= 1;
-            ov ^= compress( 0x243F6A8885A308D3 * Ctr1 );
-            Ctr1 += 2;
-        }
-        return( ov );
-    }
-    void walk_state(PractRand::StateWalkingObject *walker) {}
-    void seed(Uint64 sv) {}
-    std::string get_name() const {return "LCG";}
-};
-```
 
 ## Proof_Math_Is_Engineered
 
