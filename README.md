@@ -977,7 +977,7 @@ of rhombic patterns within tree-like structures. The `proof_christmas_tree.c`
 program extracts such images into a vertical ASCII-art HTML. It uses the same
 underlying 1-bit PRVHASH code, but with "pixel art" decoding method.
 
-One may notice a similarity of the beginning pattern with the [Sierpinski
+One may notice a similarity of the initial pattern with the [Sierpinski
 triangle](https://en.wikipedia.org/wiki/Sierpi%C5%84ski_triangle) (ST).
 However, one should consider that ST is a symmetrical triangle fractal that
 is constructed from the top-most to bottom levels. PRVHASH-1 produces an
@@ -999,8 +999,8 @@ longer than the `PH_HASH_COUNT` value, meaning this implicit "boundary
 condition" is not synchronized with the moment the `HashPos` resets to 0. This
 fact tells that the "boundary condition" logic "happens" beyond the common
 math, in some way, implicitly. One has to ask themselves - how it is possible
-to "embed" at least Rule 102/153 with boundary handling (but much more than
-that) into a function as simple (and affine/linear in
+to "embed" at least Rule 102/153 with boundary handling, and much more than
+that, into a function as simple (and affine/linear in
 [F_2](https://en.wikipedia.org/wiki/GF(2))) as PRVHASH-1? Beside that,
 as with the graphs above, presence of exact Rule 102/153 imagery implies
 presence of "logic understandable to a human mind", and from computer
@@ -1038,6 +1038,10 @@ You may also take a look at an
 which represents a continuous generation while displaying a sum of the recent
 255 passes, at every moment.
 
+Note that while individual frame passes that produce "triangles" look seemingly
+chaotic, the sum of the frames produces a non-chaotic image, implying existence
+of a higher-order structure.
+
 If this imagery looks intelligent, in some way formulated, where's the
 formula? An inception of these results can be understood from this short essay:
 [The Informational Deficiency of the "Big Bang"](https://vixra.org/abs/1506.0083)
@@ -1062,9 +1066,10 @@ PH_SEED_COUNT=64, note the appearance of a lot of glyph-like elements.
 
 ### Architectural Ruler (Gradilac Ruler) ###
 
-Whatever the true source of imagery is, the produced imagery seems to be
-useful if applied as some architectural measurement ruler/tool since it can be
-used to quickly measure architectural features as whole-number ratios:
+Whatever the true source of imagery is, one instance of produced "fine art"
+imagery seems to be useful, if applied as some architectural measurement
+ruler/tool since it can be used to quickly measure architectural features
+as whole-number ratios:
 
 <img src="img/arch-ruler.jpg" width="686">
 
@@ -1097,7 +1102,8 @@ subjective and extend beyond mathematical analysis. In rigorous terms, the
 system's behavior aligns with known principles of algebra and recursion,
 requiring no appeal to external agency.
 
-However, if one also considers an approximately similar examples of Mandelbrot
+However, this does not tell anything about what we actually perceive.
+If one also considers an approximately similar examples of Mandelbrot
 sets, Wolfram state automata imagery, the evidence for an "external agency"
 builds-up, and may cause a "quantum leap" in understanding of the core of
 mathematics.
